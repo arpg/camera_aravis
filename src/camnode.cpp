@@ -997,7 +997,8 @@ int main(int argc, char** argv)
         double framerate = 0.0;
         int mtu;
         std::string frame_id;
-
+        int packetDelay; //delay between packets to allow host to process. Needed for full framerate
+        
         ros::NodeHandle local_ns_("~");
         if (local_ns_.getParam("framerate", framerate))
             {
@@ -1030,6 +1031,11 @@ int main(int argc, char** argv)
                 global.config.frame_id = frame_id;
             }
 
+        if (local_ns_.getParam("packet_delay", packetDelay))
+            {
+                ROS_INFO("Using packet delay: %d", packetDelay);
+                arv_camera_gv_set_packet_delay(global.pCamera, packetDelay);
+            }
 		// Initial camera settings.
 
 		if (global.isImplementedExposureTimeAbs)
