@@ -1027,7 +1027,7 @@ int main(int argc, char** argv)
         if (local_ns_.getParam("frame_id", frame_id))
             {
                 ROS_INFO("Using frame id: %s", frame_id);
-                global.config_frame_id = frame_id;
+                global.config.frame_id = frame_id;
             }
         
 		// Initial camera settings.
