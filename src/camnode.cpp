@@ -81,7 +81,7 @@ struct AravisCamera
 	Config 									configMin;
 	Config 									configMax;
 	int                                     idSoftwareTriggerTimer;
-	
+
 	int										isImplementedAcquisitionFrameRate;
 	int										isImplementedAcquisitionFrameRateEnable;
 	int										isImplementedGain;
@@ -117,14 +117,14 @@ struct AravisCamera
 	int										mtu;
 	int										Acquire;
 	const char							   *keyAcquisitionFrameRate;
-#ifdef TUNING			
+#ifdef TUNING
 	ros::Publisher 							*ppubInt64;
 #endif
 
 } global;
 
 
-typedef struct 
+typedef struct
 {
     GMainLoop  *main_loop;
     int         nBuffers;	// Counter for Hz calculation.
@@ -172,7 +172,7 @@ ArvGvStream *CreateStream(void)
 	unsigned int 	timeoutPacket = 40; // milliseconds
 	unsigned int 	timeoutFrameRetention = 200;
 
-	
+
 	ArvGvStream *pStream = (ArvGvStream *)arv_device_create_stream (global.pDevice, NULL, NULL);
 	if (pStream)
 	{
@@ -230,15 +230,15 @@ void RosReconfigure_callback(Config &config, uint32_t level)
     int             changedFrameid;
     int             changedFocusPos;
     int             changedMtu;
-    
-    
+
+
     std::string tf_prefix = tf::getPrefixParam(*global.phNode);
     ROS_DEBUG_STREAM("tf_prefix: " << tf_prefix);
-    
+
     if (config.frame_id == "")
         config.frame_id = "camera";
 
-    
+
     // Find what the user changed.
     changedAcquire    			= (global.config.Acquire != config.Acquire);
     changedAcquisitionFrameRate = (global.config.AcquisitionFrameRate != config.AcquisitionFrameRate);
@@ -291,13 +291,13 @@ void RosReconfigure_callback(Config &config, uint32_t level)
     changedFocusPos     		= (global.config.FocusPos != config.FocusPos);
     changedMtu          		= (global.config.mtu != config.mtu);
 
-    
+
     // Set params into the camera.
     if (changedExposureTimeAbs)
     {
     	if (global.isImplementedExposureTimeAbs)
 		{
-            
+
 			ROS_INFO ("Set ExposureTimeAbs = %f", config.ExposureTimeAbs);
             arv_camera_set_exposure_time(global.pCamera, config.ExposureTimeAbs);
 		}
@@ -482,20 +482,20 @@ static void NewBuffer_callback (ArvStream *pStream, ApplicationData *pApplicatio
 	static uint64_t  cm = 0L;	// Camera time prev
 	uint64_t  		 cn = 0L;	// Camera time now
 
-#ifdef TUNING			
+#ifdef TUNING
 	static uint64_t  rm = 0L;	// ROS time prev
 #endif
 	uint64_t  		 rn = 0L;	// ROS time now
 
 	static uint64_t	 tm = 0L;	// Calculated image time prev
 	uint64_t		 tn = 0L;	// Calculated image time now
-		
+
 	static int64_t   em = 0L;	// Error prev.
 	int64_t  		 en = 0L;	// Error now between calculated image time and ROS time.
 	int64_t  		 de = 0L;	// derivative.
 	int64_t  		 ie = 0L;	// integral.
 	int64_t			 u = 0L;	// Output of controller.
-	
+
 	int64_t			 kp1 = 0L;		// Fractional gains in integer form.
 	int64_t			 kp2 = 1024L;
 	int64_t			 kd1 = 0L;
@@ -504,83 +504,83 @@ static void NewBuffer_callback (ArvStream *pStream, ApplicationData *pApplicatio
 	int64_t			 ki2 = 1024L;
 
 	static uint32_t	 iFrame = 0;	// Frame counter.
-    
+
 	ArvBuffer		*pBuffer;
 
-	
-#ifdef TUNING			
+
+#ifdef TUNING
 	std_msgs::Int64  msgInt64;
 	int 			 kp = 0;
 	int 			 kd = 0;
 	int 			 ki = 0;
-    
+
 	if (global.phNode->hasParam(ros::this_node::getName()+"/kp"))
 	{
 		global.phNode->getParam(ros::this_node::getName()+"/kp", kp);
 		kp1 = kp;
 	}
-	
+
 	if (global.phNode->hasParam(ros::this_node::getName()+"/kd"))
 	{
 		global.phNode->getParam(ros::this_node::getName()+"/kd", kd);
 		kd1 = kd;
 	}
-	
+
 	if (global.phNode->hasParam(ros::this_node::getName()+"/ki"))
 	{
 		global.phNode->getParam(ros::this_node::getName()+"/ki", ki);
 		ki1 = ki;
 	}
 #endif
-	
+
     pBuffer = arv_stream_try_pop_buffer (pStream);
-    if (pBuffer != NULL) 
+    if (pBuffer != NULL)
     {
-        
-        if (arv_buffer_get_status(pBuffer) == ARV_BUFFER_STATUS_SUCCESS) 
+
+        if (arv_buffer_get_status(pBuffer) == ARV_BUFFER_STATUS_SUCCESS)
         {
 			sensor_msgs::Image msg;
-			
+
         	pApplicationdata->nBuffers++;
 			std::vector<uint8_t> this_data(arv_camera_get_payload(global.pCamera));
             size_t imageSize;
             const void* imageData = arv_buffer_get_data(pBuffer, &imageSize);
-            
+
 			memcpy(&this_data[0], imageData, imageSize);
 
 
 			// Camera/ROS Timestamp coordination.
 			cn				= arv_buffer_get_timestamp(pBuffer);				// Camera now
 			rn	 			= ros::Time::now().toNSec();					// ROS now
-			
+
 			if (iFrame < 10)
 			{
 				cm = cn;
 				tm  = rn;
 			}
-			
+
 			// Control the error between the computed image timestamp and the ROS timestamp.
 			en = (int64_t)tm + (int64_t)cn - (int64_t)cm - (int64_t)rn; // i.e. tn-rn, but calced from prior values.
 			de = en-em;
 			ie += en;
 			u = kp1*(en/kp2) + ki1*(ie/ki2) + kd1*(de/kd2);  // kp<0, ki<0, kd>0
-			
+
 			// Compute the new timestamp.
 			tn = (uint64_t)((int64_t)tm + (int64_t)cn-(int64_t)cm + u);
 
-#ifdef TUNING			
+#ifdef TUNING
 			ROS_WARN("en=%16ld, ie=%16ld, de=%16ld, u=%16ld + %16ld + %16ld = %16ld", en, ie, de, kp1*(en/kp2), ki1*(ie/ki2), kd1*(de/kd2), u);
 			ROS_WARN("cn=%16lu, rn=%16lu, cn-cm=%8ld, rn-rm=%8ld, tn-tm=%8ld, tn-rn=%ld", cn, rn, cn-cm, rn-rm, (int64_t)tn-(int64_t)tm, tn-rn);
 			msgInt64.data = tn-rn; //cn-cm+tn-tm; //
 			global.ppubInt64->publish(msgInt64);
 			rm = rn;
 #endif
-			
+
 			// Save prior values.
 			cm = cn;
 			tm = tn;
 			em = en;
-			
+
 			// Construct the image message.
 			msg.header.stamp.fromNSec(tn);
 			msg.header.seq = arv_buffer_get_frame_id(pBuffer);
@@ -600,11 +600,11 @@ static void NewBuffer_callback (ArvStream *pStream, ApplicationData *pApplicatio
 			global.camerainfo.height = global.heightRoi;
 
 			global.publisher.publish(msg, global.camerainfo);
-				
+
         }
         else
         	ROS_WARN ("Frame error: %s", szBufferStatusFromInt[arv_buffer_get_status(pBuffer)]);
-        	
+
         arv_stream_push_buffer (pStream, pBuffer);
         iFrame++;
     }
@@ -681,10 +681,10 @@ NODEEX GetGcFirstChild(ArvGc *pGenicam, NODEEX nodeex)
 		nodeex.szTag = NULL;
 		nodeex.pNodeSibling = NULL;
 	}
-	
+
 	//ROS_INFO("GFC name=%s, node=%p, sib=%p", szNameChild, nodeex.pNode, nodeex.pNodeSibling);
 
-	
+
 	return nodeex;
 } // GetGcFirstChild()
 
@@ -713,7 +713,7 @@ NODEEX GetGcNextSibling(ArvGc *pGenicam, NODEEX nodeex)
 			nodeex.szTag = nodeex.szName;
 		}
 	}
-	else 
+	else
 	{
 		nodeex.szName = NULL;
 		nodeex.szTag = NULL;
@@ -722,7 +722,7 @@ NODEEX GetGcNextSibling(ArvGc *pGenicam, NODEEX nodeex)
 
 	//ROS_INFO("GNS name=%s, node=%p, sib=%p", nodeex.szName, nodeex.pNode, nodeex.pNodeSibling);
 
-	
+
 	return nodeex;
 } // GetGcNextSibling()
 
@@ -734,7 +734,7 @@ void PrintDOMTree(ArvGc *pGenicam, NODEEX nodeex, int nIndent)
 	const char *szFeature=0;
 	const char *szDomName=0;
 	const char *szFeatureValue=0;
-	
+
 	szIndent = new char[nIndent+1];
 	memset(szIndent,' ',nIndent);
 	szIndent[nIndent]=0;
@@ -753,7 +753,7 @@ void PrintDOMTree(ArvGc *pGenicam, NODEEX nodeex, int nIndent)
 					ROS_INFO("FeatureName: %s%s, %s=%s", szIndent, szDomName, szFeature, szFeatureValue);
 			}
 			PrintDOMTree(pGenicam, nodeex, nIndent+4);
-			
+
 			// Go to the next sibling.
 			nodeex = GetGcNextSibling(pGenicam, nodeex);
 
@@ -860,10 +860,10 @@ const char* getCameraSerialNumber(ArvCamera* cam)
                 return sn;
         }
     else
-        return sn;  
+        return sn;
 }
 
-int main(int argc, char** argv) 
+int main(int argc, char** argv)
 {
     char   		*pszGuid = NULL;
     char    	 szGuid[512];
@@ -875,15 +875,15 @@ int main(int argc, char** argv)
 	GError		*error=NULL;
 
 
-    
-    
+
+
     global.bCancel = FALSE;
     global.config = global.config.__getDefault__();
     global.idSoftwareTriggerTimer = 0;
 
     ros::init(argc, argv, "aravis_camera");
     global.phNode = new ros::NodeHandle();
- 
+
     //g_type_init ();
 
     // Print out some useful info.
@@ -896,7 +896,7 @@ int main(int argc, char** argv)
     ROS_INFO ("# Devices: %d", nDevices);
     for (i=0; i<nDevices; i++)
     	ROS_INFO ("Device%d: %s", i, arv_get_device_id(i));
-    
+
     if (nDevices>0)
     {
 		// Get the camera guid from either the command-line or as a parameter.
@@ -910,7 +910,7 @@ int main(int argc, char** argv)
     		if (global.phNode->hasParam(ros::this_node::getName()+"/guid"))
     		{
     			std::string		stGuid;
-    			
+
     			global.phNode->getParam(ros::this_node::getName()+"/guid", stGuid);
     			strcpy (szGuid, stGuid.c_str());
         		pszGuid = szGuid;
@@ -918,7 +918,7 @@ int main(int argc, char** argv)
     		else
     			pszGuid = NULL;
     	}
-    	
+
     	// Open the camera, and set it up.
     	ROS_INFO("Opening: %s", pszGuid ? pszGuid : "(any)");
 		while (TRUE)
@@ -936,7 +936,7 @@ int main(int argc, char** argv)
 
 		global.pDevice = arv_camera_get_device(global.pCamera);
         global.devSerialNumber = getCameraSerialNumber(global.pCamera);
-        
+
 		ROS_INFO("Opened: %s-%s", arv_device_get_string_feature_value (global.pDevice, "DeviceVendorName"), global.devSerialNumber);
 
 
@@ -962,7 +962,7 @@ int main(int argc, char** argv)
 
 		global.isImplementedAcquisitionFrameRateEnable = 1; //arv_camera_is_frame_rate_available(global.pCamera);
 
-	
+
 
 
 		// Get parameter bounds.
@@ -997,13 +997,13 @@ int main(int argc, char** argv)
         double framerate = 0.0;
         int mtu;
         std::string frame_id;
-        
+
         ros::NodeHandle local_ns_("~");
         if (local_ns_.getParam("framerate", framerate))
             {
                 ROS_INFO("Setting framerate to %1.1f from cmd line", framerate);
                 global.config.AcquisitionFrameRate = framerate;
-                    
+
             }
         if (local_ns_.getParam("exposure", expTime))
             {
@@ -1016,7 +1016,7 @@ int main(int argc, char** argv)
                 ROS_INFO("Setting gain to %1.1f from cmd line", gain);
                 global.config.Gain = gain;
             }
-        
+
         if (local_ns_.getParam("mtu", mtu))
             {
                 ROS_INFO("Setting mtu to %d from cmd line", mtu);
@@ -1026,26 +1026,26 @@ int main(int argc, char** argv)
 
         if (local_ns_.getParam("frame_id", frame_id))
             {
-                ROS_INFO("Using frame id: %s", frame_id);
+                ROS_INFO("Using frame id: %s", frame_id.c_str());
                 global.config.frame_id = frame_id;
             }
-        
+
 		// Initial camera settings.
-        
+
 		if (global.isImplementedExposureTimeAbs)
 			arv_camera_set_exposure_time(global.pCamera, global.config.ExposureTimeAbs);
 		if (global.isImplementedGain)
 			arv_camera_set_gain(global.pCamera, global.config.Gain);
 
-        
+
         //if (global.isImplementedAcquisitionFrameRate)
         if (framerate != 0.0) //set from command line
-            arv_camera_set_frame_rate(global.pCamera, global.config.AcquisitionFrameRate); 
-        
+            arv_camera_set_frame_rate(global.pCamera, global.config.AcquisitionFrameRate);
+
 
 
 		// Set up the triggering
-        
+
 		if (global.isImplementedTriggerMode)
 		{
 			if (global.isImplementedTriggerSelector && global.isImplementedTriggerMode)
@@ -1057,15 +1057,15 @@ int main(int argc, char** argv)
 			}
 		}
 
-        
-		
 
 
-#ifdef TUNING			
+
+
+#ifdef TUNING
 		ros::Publisher pubInt64 = global.phNode->advertise<std_msgs::Int64>(ros::this_node::getName()+"/dt", 100);
 		global.ppubInt64 = &pubInt64;
 #endif
- 
+
 		// Start the camerainfo manager.
 		global.pCameraInfoManager = new camera_info_manager::CameraInfoManager(ros::NodeHandle(ros::this_node::getName()), global.devSerialNumber);
 
@@ -1078,7 +1078,7 @@ int main(int argc, char** argv)
 		reconfigureServer.setCallback(reconfigureCallback);
 		ros::Duration(1.0).sleep();
         */
-        
+
 
 		// Get parameter current values.
 		global.xRoi=0; global.yRoi=0; global.widthRoi=0; global.heightRoi=0;
@@ -1089,8 +1089,8 @@ int main(int argc, char** argv)
         global.rosPixelFormat           = getROSPixelFormat(global.pszPixelformat);
 		global.nBytesPixel      		= ARV_PIXEL_FORMAT_BYTE_PER_PIXEL(arv_device_get_integer_feature_value(global.pDevice, "PixelFormat"));
 		global.config.FocusPos  		= global.isImplementedFocusPos ? arv_device_get_integer_feature_value (global.pDevice, "FocusPos") : 0;
-		
-		
+
+
 		// Print information.
 		ROS_INFO ("    Using Camera Configuration:");
 		ROS_INFO ("    ---------------------------");
@@ -1145,7 +1145,7 @@ int main(int argc, char** argv)
 //		nodeex.pNodeSibling = NULL;
 //		PrintDOMTree(pGenicam, nodeex, 0);
 //		ROS_INFO ("    ----------------------------------------------------------------------------------");
-			
+
 
 		ArvGvStream *pStream = NULL;
 		while (TRUE)
@@ -1216,9 +1216,8 @@ int main(int argc, char** argv)
     }
     else
     	ROS_ERROR ("No cameras detected.");
-    
+
     delete global.phNode;
-    
+
     return 0;
 } // main()
-
