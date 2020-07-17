@@ -996,6 +996,8 @@ int main(int argc, char** argv)
         double gain;
         double framerate = 0.0;
         int mtu;
+        std::string frame_id;
+        
         ros::NodeHandle local_ns_("~");
         if (local_ns_.getParam("framerate", framerate))
             {
@@ -1021,6 +1023,13 @@ int main(int argc, char** argv)
                 global.config.mtu = mtu;
                 arv_camera_gv_set_packet_size(global.pCamera, mtu);
             }
+
+        if (local_ns_.getParam("frame_id", frame_id))
+            {
+                ROS_INFO("Using frame id: %s", frame_id);
+                global.config_frame_id = frame_id;
+            }
+        
 		// Initial camera settings.
         
 		if (global.isImplementedExposureTimeAbs)
