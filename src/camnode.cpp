@@ -167,10 +167,10 @@ static void set_cancel (int signal)
 
 ArvGvStream *CreateStream(void)
 {
-	gboolean 		bAutoBuffer = FALSE;
+	gboolean 		bAutoBuffer = TRUE;
 	gboolean 		bPacketResend = TRUE;
-	unsigned int 	timeoutPacket = 40; // milliseconds
-	unsigned int 	timeoutFrameRetention = 200;
+	unsigned int 	timeoutPacket = 20; // milliseconds
+	unsigned int 	timeoutFrameRetention = 100;
 
 
 	ArvGvStream *pStream = (ArvGvStream *)arv_device_create_stream (global.pDevice, NULL, NULL);
@@ -1036,7 +1036,8 @@ int main(int argc, char** argv)
                 ROS_INFO("Using packet delay: %d", packetDelay);
                 arv_camera_gv_set_packet_delay(global.pCamera, packetDelay);
             }
-		// Initial camera settings.
+	
+	// Initial camera settings.
 
 		if (global.isImplementedExposureTimeAbs)
 			arv_camera_set_exposure_time(global.pCamera, global.config.ExposureTimeAbs);

@@ -26,14 +26,16 @@ set (aravis_install_dir ${CMAKE_CURRENT_BINARY_DIR}/external/aravis-0.6.4/instal
 
 set(Aravis_INCLUDE_DIRS ${aravis_install_dir}/include/aravis-0.6 ${GLIB2_INCLUDE_DIRS})
 
-#message("ARAVIS INCLUDE DIRS: ${Aravis_INCLUDE_DIRS}") 
+message("ARAVIS INCLUDE DIRS: ${Aravis_INCLUDE_DIRS}") 
 
 find_library(ARAVIS_LIBRARY
-  NAMES "aravis-0.6"
+	NAMES "aravis-0.6"
   HINTS ${aravis_install_dir}/lib
 )
 
+set(AARAVIS_LIBRARY ${aravis_install_dir}/lib)
 set(Aravis_LIBRARIES ${ARAVIS_LIBRARY} ${GLIB2_LIBRARY} ${GObject_LIBRARY})
+
 
 generate_dynamic_reconfigure_options(cfg/CameraAravisConfig.cfg)
 catkin_package(
