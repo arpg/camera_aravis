@@ -6,7 +6,6 @@ include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules)
 find_package(catkin REQUIRED COMPONENTS roscpp sensor_msgs image_transport camera_info_manager dynamic_reconfigure driver_base tf dynamic_reconfigure)
-#find_package(Aravis REQUIRED)
 find_package(GLIB2 REQUIRED)
 
 ExternalProject_Add(Aravis
@@ -26,10 +25,13 @@ set (aravis_install_dir ${CMAKE_CURRENT_BINARY_DIR}/external/aravis-0.6.4/instal
 set(Aravis_INCLUDE_DIRS ${aravis_install_dir}/include/aravis-0.6 ${GLIB2_INCLUDE_DIRS})
 
 
-find_library(ARAVIS_LIBRARY
-	NAMES "aravis-0.6"
-  HINTS ${aravis_install_dir}/lib
-)
+#find_library(ARAVIS_LIBRARY
+#	NAMES "aravis-0.6"
+#  HINTS ${aravis_install_dir}/lib
+#)
+
+#file( GLOB ARAVIS_LIBRARY "${aravis_install_dir}/lib/*.so*" )
+set(ARAVIS_LIBRARY ${aravis_install_dir}/lib/libaravis-0.6.so)
 
 
 generate_dynamic_reconfigure_options(cfg/CameraAravisConfig.cfg)
@@ -43,7 +45,6 @@ catkin_package(
 include_directories(cfg/cpp ${catkin_INCLUDE_DIRS} ${Aravis_INCLUDE_DIRS} ${GLIB2_INCLUDE_DIRS})
 
 add_executable(camnode src/camnode.cpp)
-
-target_link_libraries(camnode ${catkin_LIBRARIES} ${ARAVIS_LIBRARY} glib-2.0 gmodule-2.0 gobject-2.0)
-add_dependencies(camnode ${PROJECT_NAME}_gencfg)
 add_dependencies(camnode Aravis)
+add_dependencies(camnode ${PROJECT_NAME}_gencfg)
+target_link_libraries(camnode ${catkin_LIBRARIES} ${ARAVIS_LIBRARY} glib-2.0 gmodule-2.0 gobject-2.0)
