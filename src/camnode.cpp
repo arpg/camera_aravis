@@ -158,6 +158,10 @@ const char *getROSPixelFormat(const char* genicamFmt)
         {
             return sensor_msgs::image_encodings::MONO8.c_str();
         }
+    else{
+        ROS_WARN("Undefined image encoding");
+        return sensor_msgs::image_encodings::MONO8.c_str();
+    }
 }
 
 static void set_cancel (int signal)
@@ -1136,7 +1140,7 @@ int main(int argc, char** argv)
 		ROS_INFO ("    Can set FocusPos:      %s", global.isImplementedFocusPos ? "True" : "False");
 
 		if (global.isImplementedMtu)
-			ROS_INFO ("    Network mtu          = %lu", 	arv_camera_gv_get_packet_size(global.pCamera));
+			ROS_INFO ("    Network mtu          = %lu", 	(unsigned long)arv_camera_gv_get_packet_size(global.pCamera));
 
 		ROS_INFO ("    ---------------------------");
 
